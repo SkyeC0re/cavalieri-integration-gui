@@ -1,5 +1,5 @@
 import streamlit as st
-from cavint import display_cav2d
+from cavint import display_cav2d, display_cav2d_rs
 import numpy as np
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
@@ -209,33 +209,18 @@ with input_rs_tab:
     gen_button_rs = st.button('Generate', key='gen_button_rs')
 
     if gen_button_rs:
-        def f_expr(x):
-            return eval(str(f_input_rs), {}, {
-                'x': x,
-                'sin': anp.sin,
-                'cos': anp.cos,
-                'pi': anp.pi,
-                'ln': anp.log
-            })
+        f_expr = str(f_input_rs)
+        g_expr = str(g_input_rs)
+        intervals_expr = str(x_intervals_input_rs)
 
-        def g(x):
-            return eval(str(g_input_rs), {}, {
-                'x': x,
-                'sin': anp.sin,
-                'cos': anp.cos,
-                'pi': anp.pi,
-                'ln': anp.log
-            })
-        intervals_expr = anp.array(
-            eval('[' + str(x_intervals_input_rs) + ']', {}, {})
-        )
-
-        cav_displays = display.generate_integ_rs(f_expr, g, intervals_expr,
-                                                 make_rs=True,
-                                                 make_r=True, make_g=True,
-                                                 make_deriv_g=True,
-                                                 compute_integ=True)
-
+        cav_displays = display_cav2d_rs(f_expr, g_expr, intervals_expr,
+                                     True,
+                                     100,
+                                     50,
+                                     100,
+                                     100,
+                                     1e-9
+                                     )
 
 with config_tab:
     st.write('# Config')

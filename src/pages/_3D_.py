@@ -3,9 +3,10 @@ import numpy as np
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 import plotly
-from cavInt.cav3d import display
+from cavint import display_cav3d
 from cmath import cos, sin
 import streamlit as st
+
 
 def triangulate_grid_surf(rows, cols):
     bot_l_y, bot_l_x = np.mgrid[0:rows-1, 0:cols-1]
@@ -36,8 +37,9 @@ def dictionary_inherit(child, parent):
                 dictionary_inherit(child[key], parent[key])
         else:
             child[key] = parent[key]
-    
+
     return child
+
 
 F_COLOR = '#eb5e28'
 BASE_COLOR_OLD = '#252422'
@@ -77,70 +79,70 @@ PTLY_2D_LINE_DEF = dict(
 )
 
 PTLY_F_MESH_DEF = dict(
-    color = F_COLOR,
+    color=F_COLOR,
 )
 dictionary_inherit(PTLY_F_MESH_DEF, PTLY_MESH_DEF)
 
 
 PTLY_F_MINOR_LINE_DEF = dict(
-    line=dict(color = LINE_COLOR),
+    line=dict(color=LINE_COLOR),
 )
 dictionary_inherit(PTLY_F_MINOR_LINE_DEF, PTLY_MINOR_LINE_DEF)
 
 
 PTLY_F_MAJOR_LINE_DEF = dict(
-    line=dict(color = LINE_COLOR),
+    line=dict(color=LINE_COLOR),
 )
 dictionary_inherit(PTLY_F_MAJOR_LINE_DEF, PTLY_MAJOR_LINE_DEF)
 
 
 PTLY_BASE_MESH_DEF = dict(
-    color = BASE_COLOR,
+    color=BASE_COLOR,
 )
 dictionary_inherit(PTLY_BASE_MESH_DEF, PTLY_MESH_DEF)
 
 
 PTLY_BASE_MINOR_LINE_DEF = dict(
-    line=dict(color = LINE_COLOR),
+    line=dict(color=LINE_COLOR),
 )
 dictionary_inherit(PTLY_BASE_MINOR_LINE_DEF, PTLY_MINOR_LINE_DEF)
 
 
 PTLY_BASE_MAJOR_LINE_DEF = dict(
-    line=dict(color = LINE_COLOR),
+    line=dict(color=LINE_COLOR),
 )
 dictionary_inherit(PTLY_BASE_MAJOR_LINE_DEF, PTLY_MAJOR_LINE_DEF)
 
 
 PTLY_SIDES_MESH_DEF = dict(
-    color = SIDES_COLOR,
+    color=SIDES_COLOR,
 )
 dictionary_inherit(PTLY_SIDES_MESH_DEF, PTLY_MESH_DEF)
 
 
 PTLY_SIDES_MINOR_LINE_DEF = dict(
-    line=dict(color = LINE_COLOR),
+    line=dict(color=LINE_COLOR),
 )
 dictionary_inherit(PTLY_SIDES_MINOR_LINE_DEF, PTLY_MINOR_LINE_DEF)
 
 
 PTLY_SIDES_MAJOR_LINE_DEF = dict(
-    line=dict(color = LINE_COLOR),
+    line=dict(color=LINE_COLOR),
 )
 dictionary_inherit(PTLY_SIDES_MAJOR_LINE_DEF, PTLY_MAJOR_LINE_DEF)
 
 PTLY_2D_S_LINE_DEF = dict(
-    line=dict(color = F_COLOR),
+    line=dict(color=F_COLOR),
 )
 dictionary_inherit(PTLY_2D_S_LINE_DEF, PTLY_2D_LINE_DEF)
 
 PTLY_2D_R_LINE_DEF = dict(
-    line=dict(color = BASE_COLOR),
+    line=dict(color=BASE_COLOR),
 )
 dictionary_inherit(PTLY_2D_R_LINE_DEF, PTLY_2D_LINE_DEF)
 
 PTLY_2D_TRIANGLE_LINE_DEF = dict(
-    line=dict(color = LINE_COLOR, width=1.5),
+    line=dict(color=LINE_COLOR, width=1.5),
     legendgroup='2DTriagLines'
 )
 dictionary_inherit(PTLY_2D_TRIANGLE_LINE_DEF, PTLY_2D_LINE_DEF)
@@ -152,12 +154,13 @@ input_tab, config_tab = st.tabs(['Parameters', 'Config'])
 
 with input_tab:
     st.write('# Parameters')
-    f_label_col, f_input_col, c1_label_col, c1_input_col, c2_label_col, c2_input_col = st.columns([1, 5, 1, 5, 1, 5])
+    f_label_col, f_input_col, c1_label_col, c1_input_col, c2_label_col, c2_input_col = st.columns([
+                                                                                                  1, 5, 1, 5, 1, 5])
 
     with f_label_col:
         st.write('###')
         st.latex('f(x, y)=')
-    
+
     with f_input_col:
         f_ti = st.text_input('', value='x + 2')
 
@@ -180,7 +183,7 @@ with input_tab:
     with polygons_label_col:
         st.write('###')
         st.write('Polygons:')
-    
+
     initial_polygon_set = r'''[
     [-1,-1],
     [-1,1],
@@ -197,38 +200,14 @@ with input_tab:
     with polygons_input_col:
         polygons_input = st.text_area('', value=initial_polygon_set)
 
-    
 
 with config_tab:
     st.write('# Config')
 
-def f(x):
-    return eval(str(f_ti), {}, {
-        'x':x[0],
-        'y':x[1],
-        'sin': np.sin,
-        'cos':np.cos,
-        'pi': np.pi
-    })
-
-def c_1(z):
-    return eval(str(c1_ti), {}, {
-        'z':z,
-        'sin':np.sin,
-        'cos':np.cos,
-        'pi': np.pi
-    })
-
-def c_2(z):
-    return eval(str(c2_ti), {}, {
-        'z':z,
-        'sin':np.sin,
-        'cos':np.cos,
-        'pi': np.pi
-    })
-
-def c(z):
-    return np.array([c_1(z), c_2(z)])
+f_expr = str(f_ti)
+c1_expr = str(c1_ti)
+c2_expr = str(c2_ti)
+poly_set_expr = str(polygons_input)
 
 gen_button = st.button('Generate')
 
@@ -239,10 +218,10 @@ if gen_button:
     polygons = []
     for polygon in eval('[' + polygons_input + ']', {}, {}):
         polygons.append(np.array(polygon, dtype=np.float64))
-    
+
     fig_3d_integral = make_subplots(
-        1, 
-        1,  
+        1,
+        1,
         specs=[[{'type': 'mesh3d'}]],
         subplot_titles=['3D Cavalieri Integral'],
     )
@@ -257,74 +236,106 @@ if gen_button:
         ],
         subplot_titles=['S Region', 'R Region'],
     )
-    side_curtains, triangle_info = display.generate_integral(f, c, polygons)
+    displays = display_cav3d(f_expr, c1_expr, c2_expr,
+                             poly_set_expr, True, 50, 50, 50, 500, 1e-9)
     make_triangle_legend = True
-    for x_grid_bot, x_grid, y_grid in triangle_info:
-        i, j, k = triangulate_grid_surf(*y_grid.shape)
+    for display in displays:
+        top_mesh = np.array(display.top_mesh)
+        bot_mesh = np.array(display.bot_mesh)
+        i, j, k = triangulate_grid_surf(bot_mesh.shape[0], bot_mesh.shape[1])
+        # Top mesh
         fig_3d_integral.add_trace(
-            go.Mesh3d(x=x_grid[..., 0].flatten(), y=x_grid[..., 1].flatten(), z=y_grid.flatten(), i=i, j=j, k=k, **PTLY_F_MESH_DEF),
-                row=1,
-                col=1
-        )
-        fig_3d_integral.add_trace(
-            go.Mesh3d(x=x_grid_bot[..., 0].flatten(), y=x_grid_bot[..., 1].flatten(), z=np.zeros_like(y_grid.flatten()), i=i, j=j, k=k, **PTLY_BASE_MESH_DEF),
-                row=1,
-                col=1
-        )
-        fig_3d_integral.add_trace(
-            go.Scatter3d(x=x_grid_bot[0, :, 0], y=x_grid_bot[0, :, 1], z=np.zeros_like(y_grid[0, :]), **PTLY_BASE_MINOR_LINE_DEF),
-            row = 1,
-            col = 1
-        )
-        fig_3d_integral.add_trace(
-            go.Scatter3d(x=x_grid[0, :, 0], y=x_grid[0, :, 1], z=y_grid[0, :], **PTLY_F_MINOR_LINE_DEF),
-            row = 1,
-            col = 1
-        )
-        
-        fig_2d_regions.add_trace(
-            go.Scatter(x=x_grid[0, :, 0], y=x_grid[0, :, 1], name='Triangulation', **PTLY_2D_TRIANGLE_LINE_DEF),
-            row=1, 
+            go.Mesh3d(x=top_mesh[..., 0].flatten(), y=top_mesh[..., 1].flatten(
+            ), z=top_mesh[..., 2].flatten(), i=i, j=j, k=k, **PTLY_F_MESH_DEF),
+            row=1,
             col=1
         )
 
+        # Top mesh tracing
+        fig_3d_integral.add_trace(
+            go.Scatter3d(x=top_mesh[0, :, 0], y=top_mesh[0, :, 1],
+                         z=top_mesh[0, :, 2], **PTLY_F_MINOR_LINE_DEF),
+            row=1,
+            col=1
+        )
+
+        # Bottom mesh
+        fig_3d_integral.add_trace(
+            go.Mesh3d(x=bot_mesh[..., 0].flatten(), y=bot_mesh[..., 1].flatten(
+            ), z=np.zeros_like(bot_mesh[..., 0]), i=i, j=j, k=k, **PTLY_BASE_MESH_DEF),
+            row=1,
+            col=1
+        )
+
+        # Bottom mesh tracing
+        fig_3d_integral.add_trace(
+            go.Scatter3d(x=bot_mesh[0, :, 0], y=bot_mesh[0, :, 1], z=np.zeros_like(
+                bot_mesh[0, :, 0]), **PTLY_BASE_MINOR_LINE_DEF),
+            row=1,
+            col=1
+        )
+
+        # S Plot 2D
         fig_2d_regions.add_trace(
-            go.Scatter(x=x_grid_bot[0, :, 0], y=x_grid_bot[0, :, 1], **dictionary_inherit(dict(name='Triangulation', showlegend=make_triangle_legend), PTLY_2D_TRIANGLE_LINE_DEF)),
+            go.Scatter(x=top_mesh[0, :, 0], y=top_mesh[0, :, 1],
+                       name='Triangulation', **PTLY_2D_TRIANGLE_LINE_DEF),
+            row=1,
+            col=1
+        )
+
+        # R Plot 2D
+        fig_2d_regions.add_trace(
+            go.Scatter(x=bot_mesh[0, :, 0], y=bot_mesh[0, :, 1], **dictionary_inherit(dict(
+                name='Triangulation', showlegend=make_triangle_legend), PTLY_2D_TRIANGLE_LINE_DEF)),
             row=1,
             col=2
         )
 
         make_triangle_legend = False
-    for x_grid, y_grid in side_curtains:
-        i, j, k = triangulate_grid_surf(*y_grid.shape)
-        fig_3d_integral.add_trace(
-        go.Mesh3d(x=x_grid[..., 0].flatten(), y=x_grid[..., 1].flatten(), z=y_grid.flatten(), i=i, j=j, k=k, **PTLY_SIDES_MESH_DEF)
-        )
-        fig_3d_integral.add_trace(
-            go.Scatter3d(x=x_grid[:, 0, 0], y=x_grid[:, 0, 1], z=y_grid[:, 0], **PTLY_SIDES_MAJOR_LINE_DEF)
-        )
-        fig_3d_integral.add_trace(
-            go.Scatter3d(x=x_grid[-1, :, 0], y=x_grid[-1, :, 1], z=y_grid[-1, :], **PTLY_F_MAJOR_LINE_DEF)
-        )
-        fig_3d_integral.add_trace(
-            go.Scatter3d(x=x_grid[0, :, 0], y=x_grid[0, :, 1], z=y_grid[0, :], **PTLY_F_MAJOR_LINE_DEF)
-        )
+        curtains = np.array(display.curtains)
+        i, j, k = triangulate_grid_surf(curtains.shape[1], curtains.shape[2])
+        for curtain in curtains:
 
-        fig_2d_regions.add_trace(
-            go.Scatter(x=x_grid[-1, :, 0], y=x_grid[-1, :, 1], **PTLY_2D_S_LINE_DEF),
-            row=1,
-            col=1
-        )
+            # Curtain mesh
+            fig_3d_integral.add_trace(
+                go.Mesh3d(x=curtain[..., 0].flatten(), y=curtain[..., 1].flatten(
+                ), z=curtain[..., 2].flatten(), i=i, j=j, k=k, **PTLY_SIDES_MESH_DEF)
+            )
 
-        fig_2d_regions.add_trace(
-            go.Scatter(x=x_grid[0, :, 0], y=x_grid[0, :, 1], **PTLY_2D_R_LINE_DEF),
-            row=1,
-            col=2
-        )
+            # Curtain top side major line
+            fig_3d_integral.add_trace(
+                go.Scatter3d(x=curtain[:, 0, 0], y=curtain[:, 0, 1],
+                             z=curtain[:, 0, 2], **PTLY_SIDES_MAJOR_LINE_DEF)
+            )
 
-    fig_3d_integral['layout']['height']=800
+            # Curtain right side major line
+            fig_3d_integral.add_trace(
+                go.Scatter3d(x=curtain[-1, :, 0], y=curtain[-1, :, 1],
+                             z=curtain[-1, :, 2], **PTLY_F_MAJOR_LINE_DEF)
+            )
 
-    
+            # Curtain left side major line
+            fig_3d_integral.add_trace(
+                go.Scatter3d(x=curtain[0, :, 0], y=curtain[0, :, 1],
+                             z=curtain[0, :, 2], **PTLY_F_MAJOR_LINE_DEF)
+            )
+
+            fig_2d_regions.add_trace(
+                go.Scatter(x=curtain[-1, :, 0],
+                           y=curtain[-1, :, 1], **PTLY_2D_S_LINE_DEF),
+                row=1,
+                col=1
+            )
+
+            fig_2d_regions.add_trace(
+                go.Scatter(x=curtain[0, :, 0], y=curtain[0, :, 1],
+                           **PTLY_2D_R_LINE_DEF),
+                row=1,
+                col=2
+            )
+
+    fig_3d_integral['layout']['height'] = 800
+
     with cav_int_tab:
         st.plotly_chart(fig_3d_integral, True)
 
