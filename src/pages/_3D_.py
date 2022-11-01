@@ -214,11 +214,6 @@ gen_button = st.button('Generate')
 cav_int_tab, regions_tab = st.tabs(['3D Integral', 'R and S'])
 
 if gen_button:
-
-    polygons = []
-    for polygon in eval('[' + polygons_input + ']', {}, {}):
-        polygons.append(np.array(polygon, dtype=np.float64))
-
     fig_3d_integral = make_subplots(
         1,
         1,
@@ -237,7 +232,9 @@ if gen_button:
         subplot_titles=['S Region', 'R Region'],
     )
     displays = display_cav3d(f_expr, c1_expr, c2_expr,
-                             poly_set_expr, True, 50, 50, 50, 500, 1e-9)
+                             poly_set_expr, True, st.session_state["radial_res3d"],
+                             st.session_state["x_res3d"], st.session_state["y_res3d"],
+                             st.session_state["inter_iters"], 1e-9)
     make_triangle_legend = True
     for display in displays:
         top_mesh = np.array(display.top_mesh)

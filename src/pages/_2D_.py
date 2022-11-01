@@ -169,11 +169,11 @@ with input_cav_tab:
 
         cav_displays = display_cav2d(f_expr, c_expr, intervals_expr,
                                      True,
-                                     100,
-                                     50,
-                                     100,
-                                     100,
-                                     1e-9
+                                     st.session_state["x_res2d"],
+                                     st.session_state["y_res2d"],
+                                     st.session_state["rf_iters"],
+                                     st.session_state["integ_iters"],
+                                     st.session_state["tol"],
                                      )
 
 
@@ -215,11 +215,11 @@ with input_rs_tab:
 
         cav_displays = display_cav2d_rs(f_expr, g_expr, intervals_expr,
                                      True,
-                                     100,
-                                     50,
-                                     100,
-                                     100,
-                                     1e-9
+                                     st.session_state["x_res2d"],
+                                     st.session_state["y_res2d"],
+                                     st.session_state["rf_iters"],
+                                     st.session_state["integ_iters"],
+                                     st.session_state["tol"],
                                      )
 
 with config_tab:
