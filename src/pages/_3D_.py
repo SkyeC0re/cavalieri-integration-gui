@@ -234,8 +234,9 @@ if gen_button:
     displays = display_cav3d(f_expr, c1_expr, c2_expr,
                              poly_set_expr, True, st.session_state["radial_res3d"],
                              st.session_state["x_res3d"], st.session_state["y_res3d"],
-                             st.session_state["inter_iters"], 1e-9)
+                             st.session_state["inter_iters"], st.session_state["tol"])
     make_triangle_legend = True
+    curtain_set = dict()
     for display in displays:
         top_mesh = np.array(display.top_mesh)
         bot_mesh = np.array(display.bot_mesh)
@@ -272,64 +273,75 @@ if gen_button:
             col=1
         )
 
-        # S Plot 2D
-        fig_2d_regions.add_trace(
-            go.Scatter(x=top_mesh[0, :, 0], y=top_mesh[0, :, 1],
-                       name='Triangulation', **PTLY_2D_TRIANGLE_LINE_DEF),
-            row=1,
-            col=1
-        )
-
-        # R Plot 2D
-        fig_2d_regions.add_trace(
-            go.Scatter(x=bot_mesh[0, :, 0], y=bot_mesh[0, :, 1], **dictionary_inherit(dict(
-                name='Triangulation', showlegend=make_triangle_legend), PTLY_2D_TRIANGLE_LINE_DEF)),
-            row=1,
-            col=2
-        )
-
         make_triangle_legend = False
+
         curtains = np.array(display.curtains)
-        i, j, k = triangulate_grid_surf(curtains.shape[1], curtains.shape[2])
         for curtain in curtains:
+            curtain_id = [curtain[-1, 0, :], curtain[-1, -1, :]]
+            if curtain_id in curtain_set:
+                curtain_set[curtain_id][0] += 1
+            else:
+                curtain_set[curtain_id] = (0, curtain)
 
-            # Curtain mesh
-            fig_3d_integral.add_trace(
-                go.Mesh3d(x=curtain[..., 0].flatten(), y=curtain[..., 1].flatten(
-                ), z=curtain[..., 2].flatten(), i=i, j=j, k=k, **PTLY_SIDES_MESH_DEF)
-            )
+    for repititions, curtain in curtain_set:
+        i, j, k = triangulate_grid_surf(curtain.shape[0], curtain.shape[1])
+        for curtain in curtains:
+            if repititions == 0:
+                # Curtain mesh
+                fig_3d_integral.add_trace(
+                    go.Mesh3d(x=curtain[..., 0].flatten(), y=curtain[..., 1].flatten(
+                    ), z=curtain[..., 2].flatten(), i=i, j=j, k=k, **PTLY_SIDES_MESH_DEF)
+                )
 
-            # Curtain top side major line
-            fig_3d_integral.add_trace(
-                go.Scatter3d(x=curtain[:, 0, 0], y=curtain[:, 0, 1],
-                             z=curtain[:, 0, 2], **PTLY_SIDES_MAJOR_LINE_DEF)
-            )
+                # Curtain top side major line
+                fig_3d_integral.add_trace(
+                    go.Scatter3d(x=curtain[:, 0, 0], y=curtain[:, 0, 1],
+                                 z=curtain[:, 0, 2], **PTLY_SIDES_MAJOR_LINE_DEF)
+                )
 
-            # Curtain right side major line
-            fig_3d_integral.add_trace(
-                go.Scatter3d(x=curtain[-1, :, 0], y=curtain[-1, :, 1],
-                             z=curtain[-1, :, 2], **PTLY_F_MAJOR_LINE_DEF)
-            )
+                # Curtain right side major line
+                fig_3d_integral.add_trace(
+                    go.Scatter3d(x=curtain[-1, :, 0], y=curtain[-1, :, 1],
+                                 z=curtain[-1, :, 2], **PTLY_F_MAJOR_LINE_DEF)
+                )
 
-            # Curtain left side major line
-            fig_3d_integral.add_trace(
-                go.Scatter3d(x=curtain[0, :, 0], y=curtain[0, :, 1],
-                             z=curtain[0, :, 2], **PTLY_F_MAJOR_LINE_DEF)
-            )
+                # Curtain left side major line
+                fig_3d_integral.add_trace(
+                    go.Scatter3d(x=curtain[0, :, 0], y=curtain[0, :, 1],
+                                 z=curtain[0, :, 2], **PTLY_F_MAJOR_LINE_DEF)
+                )
 
-            fig_2d_regions.add_trace(
-                go.Scatter(x=curtain[-1, :, 0],
-                           y=curtain[-1, :, 1], **PTLY_2D_S_LINE_DEF),
-                row=1,
-                col=1
-            )
+                # S Plot 2D
+                fig_2d_regions.add_trace(
+                    go.Scatter(x=top_mesh[0, :, 0], y=top_mesh[0, :, 1],
+                               name='Triangulation', **PTLY_2D_TRIANGLE_LINE_DEF),
+                    row=1,
+                    col=1
+                )
 
-            fig_2d_regions.add_trace(
-                go.Scatter(x=curtain[0, :, 0], y=curtain[0, :, 1],
-                           **PTLY_2D_R_LINE_DEF),
-                row=1,
-                col=2
-            )
+                # R Plot 2D
+                fig_2d_regions.add_trace(
+                    go.Scatter(x=bot_mesh[0, :, 0], y=bot_mesh[0, :, 1], **dictionary_inherit(dict(
+                        name='Triangulation', showlegend=make_triangle_legend), PTLY_2D_TRIANGLE_LINE_DEF)),
+                    row=1,
+                    col=2
+                )
+            else:
+                # S Triangulation Lines
+                fig_2d_regions.add_trace(
+                    go.Scatter(x=curtain[-1, :, 0],
+                               y=curtain[-1, :, 1], **PTLY_2D_S_LINE_DEF),
+                    row=1,
+                    col=1
+                )
+
+                # R Triangulation Lines
+                fig_2d_regions.add_trace(
+                    go.Scatter(x=curtain[0, :, 0], y=curtain[0, :, 1],
+                               **PTLY_2D_R_LINE_DEF),
+                    row=1,
+                    col=2
+                )
 
     fig_3d_integral['layout']['height'] = 800
 

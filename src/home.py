@@ -24,24 +24,24 @@ with tab1:
 
 with tab2:
 
-    x_res2d = st.number_input("Triangle X Resolution", help="Sets the xy resolution for the sides of each produced triangle.",
-                              min_value=10, max_value=500, value=50)
+    x_res2d = st.number_input("X Resolution", help="Sets the x resolution for each produced interval.",
+                              min_value=50, max_value=500, value=100)
     if x_res2d:
         st.session_state["x_res2d"] = x_res2d
 
-    y_res2d = st.number_input("Triangle Y Resolution", help="Sets the z resolution for the sides of each produced triangle.",
-                              min_value=10, max_value=500, value=50)
+    y_res2d = st.number_input("Y Resolution", help="Sets the y resolution for each produced interval.",
+                              min_value=50, max_value=500, value=100)
     if y_res2d:
         st.session_state["y_res2d"] = y_res2d
 
 with tab3:
     x_res3d = st.number_input("Triangle X Resolution", help="Sets the xy resolution for the sides of each produced triangle.",
-                              min_value=10, max_value=500, value=50)
+                              min_value=50, max_value=500, value=100)
     if x_res3d:
         st.session_state["x_res3d"] = x_res3d
 
     y_res3d = st.number_input("Triangle Y Resolution", help="Sets the z resolution for the sides of each produced triangle.",
-                              min_value=10, max_value=500, value=50)
+                              min_value=50, max_value=500, value=100)
     if y_res3d:
         st.session_state["y_res3d"] = y_res3d
 
