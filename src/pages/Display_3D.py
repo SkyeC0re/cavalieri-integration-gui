@@ -7,6 +7,7 @@ from cavint import display_cav3d
 from cmath import cos, sin
 import streamlit as st
 import pandas as pd
+pd.set_option('display.float_format', '{:.3e}'.format)
 
 
 def triangulate_grid_surf(rows, cols):
@@ -152,6 +153,22 @@ st.set_page_config(layout="wide")
 
 input_tab, config_tab = st.tabs(['Parameters', 'Config'])
 
+with config_tab:
+    st.write('# Config')
+    rad_res3d = st.number_input("Triangle Radial Resolution", help="Sets the radial resolution for the top bottom meshes of each produced triangle.", key='cfg3d_rad_res',
+                                min_value=50, max_value=200, value=100)
+
+    xy_res3d = st.number_input("Triangle XY Resolution", help="Sets the xy resolution for the sides of each produced triangle.", key='cfg3d_xy_res',
+                               min_value=50, max_value=200, value=100)
+
+    z_res3d = st.number_input("Triangle Z Resolution", help="Sets the z resolution for the sides of each produced triangle.", key='cfg3d_z_res',
+                              min_value=50, max_value=200, value=100)
+
+    integ_iters = st.number_input("Maximum Integration Iterations",
+                                  help="Sets the maximum adaptive Gauss-Kronrod iterations before failure.", key='cfg3d_integ_iters', min_value=10, max_value=1000, value=100)
+
+    tol = 10 ** st.number_input("Integration Tolerance Base 10 Exponent", help="Sets the absolute integration tolerance exponent.", key='cfg3d_tol',
+                                min_value=-12, max_value=0, value=-9)
 
 with input_tab:
     st.write('# Parameters')
@@ -206,15 +223,12 @@ with input_tab:
             '*', label_visibility="hidden", value=initial_polygon_set, key="poly_input_3d")
 
 
-with config_tab:
-    st.write('# Config')
+    f_expr = str(f_ti)
+    c1_expr = str(c1_ti)
+    c2_expr = str(c2_ti)
+    poly_set_expr = str(polygons_input)
 
-f_expr = str(f_ti)
-c1_expr = str(c1_ti)
-c2_expr = str(c2_ti)
-poly_set_expr = str(polygons_input)
-
-gen_button = st.button('Generate')
+    gen_button = st.button('Generate')
 
 if gen_button:
     fig_3d_integral = make_subplots(
@@ -223,6 +237,8 @@ if gen_button:
         specs=[[{'type': 'mesh3d'}]],
         subplot_titles=['3D Cavalieri Integral'],
     )
+    fig_3d_integral['layout']['height'] = 800
+    fig_3d_integral.update_annotations(font_size=24)
 
     fig_2d_regions = make_subplots(
         1,
@@ -234,10 +250,12 @@ if gen_button:
         ],
         subplot_titles=['S Region', 'R Region'],
     )
+    fig_2d_regions.update_annotations(font_size=24)
+
     displays = display_cav3d(f_expr, c1_expr, c2_expr,
-                             poly_set_expr, True, st.session_state["radial_res3d"],
-                             st.session_state["x_res3d"], st.session_state["y_res3d"],
-                             st.session_state["integ_iters"], st.session_state["tol"])
+                             poly_set_expr, True, rad_res3d,
+                             xy_res3d, z_res3d,
+                             integ_iters, tol)
     make_triangle_legend = True
     curtain_id_map = dict()
     triag_integ_df = []
@@ -373,31 +391,31 @@ if gen_button:
 
             make_triangle_legend = False
 
-    fig_3d_integral['layout']['height'] = 800
 
-cav_int_tab, regions_tab, integ_tab = st.tabs(
-    ['3D Integral', 'R and S', 'Triangle Integration Values'])
+    cav_int_tab, regions_tab, integ_tab = st.tabs(
+        ['3D Integral', 'R and S', 'Triangle Integration Values'])
 
-with cav_int_tab:
-    if not "fig_3d_integral" in locals():
-        fig_3d_integral = st.session_state.get("fig_3d_integral")
+    with cav_int_tab:
+        if not "fig_3d_integral" in locals():
+            fig_3d_integral = st.session_state.get("fig_3d_integral")
 
-    if fig_3d_integral:
-        st.plotly_chart(fig_3d_integral, True)
-        st.session_state["fig_3d_integral"] = fig_3d_integral
+        if fig_3d_integral:
+            st.plotly_chart(fig_3d_integral, True)
+            st.session_state["fig_3d_integral"] = fig_3d_integral
 
-with regions_tab:
-    if not "fig_2d_regions" in locals():
-        fig_2d_regions = st.session_state.get("fig_2d_regions")
+    with regions_tab:
+        if not "fig_2d_regions" in locals():
+            fig_2d_regions = st.session_state.get("fig_2d_regions")
 
-    if fig_2d_regions:
-        st.plotly_chart(fig_2d_regions, True)
-        st.session_state["fig_2d_regions"] = fig_2d_regions
+        if fig_2d_regions:
+            st.plotly_chart(fig_2d_regions, True)
+            st.session_state["fig_2d_regions"] = fig_2d_regions
 
-with integ_tab:
-    if not "triag_integ_df" in locals():
-        triag_integ_df = st.session_state.get("triag_integ_df")
+    with integ_tab:
+        if not "triag_integ_df" in locals():
+            triag_integ_df = st.session_state.get("triag_integ_df")
 
-    if not triag_integ_df is None:
-        st.dataframe(triag_integ_df)
-        st.session_state["triag_integ_df"] = triag_integ_df
+        if not triag_integ_df is None:
+            st.dataframe(triag_integ_df.style.format('{:.3e}', subset=[
+                     "Integration Value", "Estimated Error"]))
+            st.session_state["triag_integ_df"] = triag_integ_df

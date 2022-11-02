@@ -4,6 +4,7 @@ import numpy as np
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 import pandas as pd
+pd.set_option('display.float_format', '{:.3e}'.format)
 
 LGROUP_F = 1
 LGROUP_INTERMEDIATE = 2
@@ -127,9 +128,26 @@ PTLY_SIDES_PACKAGE_SPEC = dict(
 
 st.set_page_config(layout="wide")
 
-input_cav_tab, input_rs_tab = st.tabs(
-    ['Cavalieri Input', 'Riemann-Stieltjes Input']
+input_cav_tab, input_rs_tab, config_tab = st.tabs(
+    ['Cavalieri Input', 'Riemann-Stieltjes Input', 'Config']
 )
+
+with config_tab:
+    st.write('# Config')
+    x_res2d = st.number_input("X Resolution", help="Sets the x resolution for each produced interval.", key='cfg2d_x_res',
+                              min_value=50, max_value=500, value=100)
+
+    y_res2d = st.number_input("Y Resolution", help="Sets the y resolution for each produced interval.", key='cfg2d_y_res',
+                              min_value=50, max_value=500, value=100)
+
+    rf_iters = st.number_input("Maximum Root Finding Iterations",
+                               help="Sets the maximum root finding iterations before failure.", key='cfg2d_rf_iters', min_value=10, max_value=1000, value=100)
+
+    integ_iters = st.number_input("Maximum Integration Iterations",
+                                  help="Sets the maximum adaptive Gauss-Kronrod iterations before failure.", key='cfg2d_integ_iters', min_value=10, max_value=1000, value=100)
+
+    tol = 10 ** st.number_input("Integration Tolerance Base 10 Exponent", help="Sets the absolute integration tolerance exponent.", key='cfg2d_tol',
+                                min_value=-12, max_value=0, value=-9)
 
 
 with input_cav_tab:
@@ -172,11 +190,11 @@ with input_cav_tab:
 
         displays = display_cav2d(f_expr, c_expr, intervals_expr,
                                  True,
-                                 st.session_state["x_res2d"],
-                                 st.session_state["y_res2d"],
-                                 st.session_state["rf_iters"],
-                                 st.session_state["integ_iters"],
-                                 st.session_state["tol"],
+                                 x_res2d,
+                                 y_res2d,
+                                 rf_iters,
+                                 integ_iters,
+                                 tol,
                                  )
 
 
@@ -220,11 +238,11 @@ with input_rs_tab:
 
         displays = display_cav2d_rs(f_expr, g_expr, intervals_expr,
                                     True,
-                                    st.session_state["x_res2d"],
-                                    st.session_state["y_res2d"],
-                                    st.session_state["rf_iters"],
-                                    st.session_state["integ_iters"],
-                                    st.session_state["tol"],
+                                    x_res2d,
+                                    y_res2d,
+                                    rf_iters,
+                                    integ_iters,
+                                    tol,
                                     )
 
 
@@ -242,7 +260,8 @@ if 'displays' in locals():
     g_graphs_fig = make_subplots(2, 1, shared_xaxes=True,
                                  subplot_titles=("g(x*)", "g'(x*)"),
                                  vertical_spacing=0.1)
-    g_graphs_fig['layout']['height'] = 500
+    g_graphs_fig['layout']['height'] = 800
+    g_graphs_fig.update_annotations(font_size=24)
 
     intermediate_step = 10
     cav_f = []
@@ -464,4 +483,5 @@ if 'displays' in locals():
             st.plotly_chart(g_graphs_fig, True)
 
     with integ_tab:
-        st.dataframe(interval_integ_df)
+        st.dataframe(interval_integ_df.style.format('{:.3e}', subset=[
+                     "Integration Value", "Estimated Error"]), use_container_width=True)
