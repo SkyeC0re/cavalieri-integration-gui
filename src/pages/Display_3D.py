@@ -6,6 +6,7 @@ import plotly
 from cavint import display_cav3d
 from cmath import cos, sin
 import streamlit as st
+import pandas as pd
 
 
 def triangulate_grid_surf(rows, cols):
@@ -162,21 +163,24 @@ with input_tab:
         st.latex('f(x, y)=')
 
     with f_input_col:
-        f_ti = st.text_input('', value='x + 2')
+        f_ti = st.text_input('*', label_visibility="hidden",
+                             value='x + 2', key="f_input_3d")
 
     with c1_label_col:
         st.write('###')
         st.latex('c_x(z)=')
 
     with c1_input_col:
-        c1_ti = st.text_input('', value='-z')
+        c1_ti = st.text_input('*', label_visibility="hidden",
+                              value='-z', key="c1_input_3d")
 
     with c2_label_col:
         st.write('###')
         st.latex('c_y(z)=')
 
     with c2_input_col:
-        c2_ti = st.text_input('', value='0')
+        c2_ti = st.text_input('*', label_visibility="hidden",
+                              value='0', key="c2_input_3d")
 
     polygons_label_col, polygons_input_col = st.columns([1, 11])
 
@@ -198,7 +202,8 @@ with input_tab:
 ]'''
 
     with polygons_input_col:
-        polygons_input = st.text_area('', value=initial_polygon_set)
+        polygons_input = st.text_area(
+            '*', label_visibility="hidden", value=initial_polygon_set, key="poly_input_3d")
 
 
 with config_tab:
@@ -210,8 +215,6 @@ c2_expr = str(c2_ti)
 poly_set_expr = str(polygons_input)
 
 gen_button = st.button('Generate')
-
-cav_int_tab, regions_tab = st.tabs(['3D Integral', 'R and S'])
 
 if gen_button:
     fig_3d_integral = make_subplots(
@@ -237,7 +240,20 @@ if gen_button:
                              st.session_state["integ_iters"], st.session_state["tol"])
     make_triangle_legend = True
     curtain_id_map = dict()
+    triag_integ_df = []
+    accu_sum = 0
+    accu_err = 0
     for display in displays:
+        iv, ierr = display.integ_value
+        accu_sum += iv
+        accu_err += ierr
+        triag = np.array(display.triag)
+
+        triag_integ_df.append([
+            f"({triag[0, 0]:.2e}, {triag[0, 1]:.2e})--({triag[1, 0]:.2e}, {triag[1, 1]:.2e})--({triag[2, 0]:.2e}, {triag[2, 1]:.2e})",
+            iv,
+            ierr
+        ])
         top_mesh = np.array(display.top_mesh)
         bot_mesh = np.array(display.bot_mesh)
         i, j, k = triangulate_grid_surf(bot_mesh.shape[0], bot_mesh.shape[1])
@@ -292,6 +308,10 @@ if gen_button:
             else:
                 curtain_id_map[curtain_id] = [0, curtain]
 
+    triag_integ_df.append(
+        ["Total", accu_sum, accu_err])
+    triag_integ_df = pd.DataFrame(triag_integ_df,
+                                  columns=['Triangle', 'Integration Value', 'Estimated Error'], index=None)
     for repititions, curtain in curtain_id_map.values():
         i, j, k = triangulate_grid_surf(curtain.shape[0], curtain.shape[1])
         if repititions == 0:
@@ -355,6 +375,9 @@ if gen_button:
 
     fig_3d_integral['layout']['height'] = 800
 
+cav_int_tab, regions_tab, integ_tab = st.tabs(
+    ['3D Integral', 'R and S', 'Triangle Integration Values'])
+
 with cav_int_tab:
     if not "fig_3d_integral" in locals():
         fig_3d_integral = st.session_state.get("fig_3d_integral")
@@ -370,3 +393,11 @@ with regions_tab:
     if fig_2d_regions:
         st.plotly_chart(fig_2d_regions, True)
         st.session_state["fig_2d_regions"] = fig_2d_regions
+
+with integ_tab:
+    if not "triag_integ_df" in locals():
+        triag_integ_df = st.session_state.get("triag_integ_df")
+
+    if not triag_integ_df is None:
+        st.dataframe(triag_integ_df)
+        st.session_state["triag_integ_df"] = triag_integ_df

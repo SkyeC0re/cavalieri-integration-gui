@@ -3,6 +3,7 @@ from cavint import display_cav2d, display_cav2d_rs
 import numpy as np
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
+import pandas as pd
 
 LGROUP_F = 1
 LGROUP_INTERMEDIATE = 2
@@ -126,8 +127,8 @@ PTLY_SIDES_PACKAGE_SPEC = dict(
 
 st.set_page_config(layout="wide")
 
-input_cav_tab, input_rs_tab, config_tab = st.tabs(
-    ['Cavalieri Input', 'Riemann-Stieltjes Input', 'Config']
+input_cav_tab, input_rs_tab = st.tabs(
+    ['Cavalieri Input', 'Riemann-Stieltjes Input']
 )
 
 
@@ -141,14 +142,16 @@ with input_cav_tab:
         st.latex('f(x)=')
 
     with f_input_col_cav:
-        f_input_cav = st.text_input('', value='x + 2', key='f_input_cav')
+        f_input_cav = st.text_input(
+            '*', label_visibility="hidden", value='x + 2', key='f_input_cav')
 
     with c_label_col_cav:
         st.write('###')
         st.latex('c(y)=')
 
     with c_input_col_cav:
-        c_input_cav = st.text_input('', value='-y', key='c_input_cav')
+        c_input_cav = st.text_input(
+            '*', label_visibility="hidden", value='-y', key='c_input_cav')
 
     x_intervals_label_col_cav, x_intervals_input_col_cav = st.columns([1, 11])
 
@@ -157,7 +160,7 @@ with input_cav_tab:
         st.latex('S=')
 
     with x_intervals_input_col_cav:
-        x_intervals_input_cav = st.text_area('', value="[0, 1]",
+        x_intervals_input_cav = st.text_area('*', label_visibility="hidden", value="[0, 1]",
                                              key='x_intervals_input_cav')
 
     gen_button_cav = st.button('Generate', key='gen_button_cav')
@@ -167,14 +170,14 @@ with input_cav_tab:
         c_expr = str(c_input_cav)
         intervals_expr = str(x_intervals_input_cav)
 
-        cav_displays = display_cav2d(f_expr, c_expr, intervals_expr,
-                                     True,
-                                     st.session_state["x_res2d"],
-                                     st.session_state["y_res2d"],
-                                     st.session_state["rf_iters"],
-                                     st.session_state["integ_iters"],
-                                     st.session_state["tol"],
-                                     )
+        displays = display_cav2d(f_expr, c_expr, intervals_expr,
+                                 True,
+                                 st.session_state["x_res2d"],
+                                 st.session_state["y_res2d"],
+                                 st.session_state["rf_iters"],
+                                 st.session_state["integ_iters"],
+                                 st.session_state["tol"],
+                                 )
 
 
 with input_rs_tab:
@@ -187,14 +190,16 @@ with input_rs_tab:
         st.latex('f(x)=')
 
     with f_input_col_rs:
-        f_input_rs = st.text_input('', value='x + 2', key='f_input_rs')
+        f_input_rs = st.text_input(
+            '*', label_visibility="hidden", value='x + 2', key='f_input_rs')
 
     with g_label_col_rs:
         st.write('###')
         st.latex('g(x)=')
 
     with g_input_col_rs:
-        g_input_rs = st.text_input('', value='2*x', key='g_input_rs')
+        g_input_rs = st.text_input(
+            '*', label_visibility="hidden", value='2*x', key='g_input_rs')
 
     x_intervals_label_col_rs, x_intervals_input_col_rs = st.columns([1, 11])
 
@@ -203,7 +208,7 @@ with input_rs_tab:
         st.latex('S=')
 
     with x_intervals_input_col_rs:
-        x_intervals_input_rs = st.text_area('', value="[0, 1]",
+        x_intervals_input_rs = st.text_area('*', label_visibility="hidden", value="[0, 1]",
                                             key='x_intervals_input_rs')
 
     gen_button_rs = st.button('Generate', key='gen_button_rs')
@@ -213,20 +218,17 @@ with input_rs_tab:
         g_expr = str(g_input_rs)
         intervals_expr = str(x_intervals_input_rs)
 
-        cav_displays = display_cav2d_rs(f_expr, g_expr, intervals_expr,
-                                     True,
-                                     st.session_state["x_res2d"],
-                                     st.session_state["y_res2d"],
-                                     st.session_state["rf_iters"],
-                                     st.session_state["integ_iters"],
-                                     st.session_state["tol"],
-                                     )
-
-with config_tab:
-    st.write('# Config')
+        displays = display_cav2d_rs(f_expr, g_expr, intervals_expr,
+                                    True,
+                                    st.session_state["x_res2d"],
+                                    st.session_state["y_res2d"],
+                                    st.session_state["rf_iters"],
+                                    st.session_state["integ_iters"],
+                                    st.session_state["tol"],
+                                    )
 
 
-if 'cav_displays' in locals():
+if 'displays' in locals():
     cav_integ_fig = make_subplots(2, 2, shared_xaxes='all', shared_yaxes='all',
                                   subplot_titles=("Cavalieri Integral",
                                                   "f(h(x))",
@@ -235,6 +237,7 @@ if 'cav_displays' in locals():
                                   )
     cav_integ_fig['layout']['xaxis2_showticklabels'] = True
     cav_integ_fig['layout']['height'] = 800
+    cav_integ_fig.update_annotations(font_size=24)
 
     g_graphs_fig = make_subplots(2, 1, shared_xaxes=True,
                                  subplot_titles=("g(x*)", "g'(x*)"),
@@ -242,8 +245,6 @@ if 'cav_displays' in locals():
     g_graphs_fig['layout']['height'] = 500
 
     intermediate_step = 10
-    integ_accu_value = 0.0
-    integ_accu_err = 0.0
     cav_f = []
     cav_base = []
     cav_inter = []
@@ -257,37 +258,48 @@ if 'cav_displays' in locals():
     r_inter = []
     r_sides = []
     lg_i = 0
-    for cav_display in cav_displays:
-        integ_accu_value += cav_display.integ_value[0]
-        integ_accu_err += cav_display.integ_value[1]
-        xy_grid = np.array(cav_display.cav_grid)
-        dgv = np.array(cav_display.dgv)
+    interval_integ_df = []
+    accu_sum = 0.0
+    accu_err = 0.0
+    for display in displays:
+        iv, ierr = display.integ_value
+        accu_sum += iv
+        accu_err += ierr
+
+        interval_integ_df.append([
+            f"[{display.a:.2e}, {display.b:.2e}]",
+            iv,
+            ierr
+        ])
+        xy_grid = np.array(display.cav_grid)
+        dgv = np.array(display.dgv)
         lg_i += 1
+        group_title = f"[{xy_grid[-1, 0, 0]:.2e}, {xy_grid[-1, -1, 0]:.2e}]"
         spec_f = dictionary_inherit(
             dict(
                 legendgroup=f"f{lg_i}",
-                legendgrouptitle=dict(text=f"Interval {lg_i}")
+                legendgrouptitle=dict(text=group_title)
             ),
             PTLY_F_MAJOR_GRID_DEF
         )
         spec_base = dictionary_inherit(
             dict(
                 legendgroup=f"f{lg_i}",
-                legendgrouptitle=dict(text=f"Interval {lg_i}"),
+                legendgrouptitle=dict(text=group_title),
             ),
             PTLY_BASE_MAJOR_GRID_DEF
         )
         spec_sides = dictionary_inherit(
             dict(
                 legendgroup=f"f{lg_i}",
-                legendgrouptitle=dict(text=f"Interval {lg_i}")
+                legendgrouptitle=dict(text=group_title)
             ),
             PTLY_SIDES_MAJOR_GRID_DEF
         )
         spec_inter = dictionary_inherit(
             dict(
                 legendgroup=f"f{lg_i}",
-                legendgrouptitle=dict(text=f"Interval {lg_i}")
+                legendgrouptitle=dict(text=group_title)
             ),
             PTLY_SIDES_MINOR_GRID_DEF
         )
@@ -410,41 +422,46 @@ if 'cav_displays' in locals():
             )
         )
 
-        # g_graphs_fig.add_trace(
-        #     go.Scatter(
-        #         x=cav_display.g_interval[0],
-        #         y=cav_display.g_interval[1],
-        #         **PTLY_F_MAJOR_GRID_DEF
-        #     ),
-        #     row=1,
-        #     col=1
-        # )
+        # g graph
+        g_graphs_fig.add_trace(
+            go.Scatter(
+                x=xy_grid[-1, :, 0],
+                y=xy_grid[-1, :, 1],
+                **PTLY_F_MAJOR_GRID_DEF
+            ),
+            row=1,
+            col=1
+        )
 
-        # g_graphs_fig.add_trace(
-        #     go.Scatter(
-        #         x=cav_display.deriv_g_interval[0],
-        #         y=cav_display.deriv_g_interval[1],
-        #         **PTLY_F_MAJOR_GRID_DEF
-        #     ),
-        #     row=2,
-        #     col=1
-        # )
+        # dg graph
+        g_graphs_fig.add_trace(
+            go.Scatter(
+                x=xy_grid[-1, :, 0],
+                y=dgv,
+                **PTLY_F_MAJOR_GRID_DEF
+            ),
+            row=2,
+            col=1
+        )
+
+    interval_integ_df.append(
+        ["Total", accu_sum, accu_err])
+    interval_integ_df = pd.DataFrame(interval_integ_df,
+                                     columns=['Interval', 'Integration Value', 'Estimated Error'], index=None)
 
     cav_integ_fig.add_traces(cav_inter + cav_sides + cav_base + cav_f, 1, 1)
     cav_integ_fig.add_traces(rs_inter + rs_sides + rs_base + rs_f, 2, 1)
     cav_integ_fig.add_traces(r_inter + r_sides + r_base + r_f, 1, 2)
-    st.markdown(f"""\
-# Output
 
-## Integral Information:
+    cav_int_tab, misc_graph_tab, integ_tab = st.tabs(
+        ['Integral Graphs', 'Misc Graphs', 'Interval Integration Values'])
+    with cav_int_tab:
+        if cav_integ_fig:
+            st.plotly_chart(cav_integ_fig, True)
 
-| Parameter | Value |
-| --- | --- |
-| Accumilative Integration Value | {integ_accu_value} |
-| Accumilative Integration Error | {integ_accu_err} |
-| Intervals | {len(cav_displays)} |
+    with misc_graph_tab:
+        if g_graphs_fig:
+            st.plotly_chart(g_graphs_fig, True)
 
-## Cavalieri Integral Display:
-""")
-    st.plotly_chart(cav_integ_fig, True)
-    st.plotly_chart(g_graphs_fig, True)
+    with integ_tab:
+        st.dataframe(interval_integ_df)

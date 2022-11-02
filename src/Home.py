@@ -24,8 +24,6 @@ with tab1:
                                   help="Sets the maximum adaptive Gauss-Kronrod iterations before failure.", min_value=10, max_value=1000, value=st_or_default("integ_iters", 100))
     if integ_iters:
         st.session_state["integ_iters"] = integ_iters
-    else:
-        st.markdown("# WHYYY")
 
     tol = st.number_input("Integration Tolerance", help="Sets the absolute integration tolerance.",
                           min_value=1e-11, max_value=1.0, value=st_or_default("tol", 1e-9))
