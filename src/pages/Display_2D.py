@@ -240,7 +240,6 @@ with input_rs_tab:
         f_expr = str(f_input_rs)
         g_expr = str(g_input_rs)
         intervals_expr = str(x_intervals_input_rs)
-        start_time = time.time()
         displays = display_cav2d_rs(f_expr, g_expr, intervals_expr,
                                     True,
                                     x_res2d,
@@ -250,8 +249,6 @@ with input_rs_tab:
                                     integ_iters,
                                     tol,
                                     )
-        end_time = time.time()
-        st.write(f"Finished Rust in seconds: {end_time - start_time}")
 
 
 if 'displays' in locals():
@@ -302,7 +299,6 @@ if 'displays' in locals():
         gv = np.array(display.gv)
         dgv = np.array(display.dgv)
         cvs = display.cvs
-        st.write(f"[{display.a}, {display.b}]")
         for i in range(len(cvs)):
             index, cv = cvs[i]
             cvs[i] = (index, np.array(cv))
