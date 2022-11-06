@@ -1,3 +1,4 @@
+import time
 import streamlit as st
 from cavint import display_cav2d, display_cav2d_rs
 import numpy as np
@@ -140,6 +141,9 @@ with config_tab:
     y_res2d = st.number_input("Y Resolution", help="Sets the y resolution for each produced interval.", key='cfg2d_y_res',
                               min_value=50, max_value=500, value=100)
 
+    interm_cs = st.number_input("Intermediate Curves", help="How many intermediate c_x(y) curves to plot.", key='cfg2d_interm_cs',
+                                min_value=0, max_value=20, value=0)
+
     rf_iters = st.number_input("Maximum Root Finding Iterations",
                                help="Sets the maximum root finding iterations before failure.", key='cfg2d_rf_iters', min_value=10, max_value=1000, value=100)
 
@@ -192,6 +196,7 @@ with input_cav_tab:
                                  True,
                                  x_res2d,
                                  y_res2d,
+                                 interm_cs,
                                  rf_iters,
                                  integ_iters,
                                  tol,
@@ -235,15 +240,18 @@ with input_rs_tab:
         f_expr = str(f_input_rs)
         g_expr = str(g_input_rs)
         intervals_expr = str(x_intervals_input_rs)
-
+        start_time = time.time()
         displays = display_cav2d_rs(f_expr, g_expr, intervals_expr,
                                     True,
                                     x_res2d,
                                     y_res2d,
+                                    interm_cs,
                                     rf_iters,
                                     integ_iters,
                                     tol,
                                     )
+        end_time = time.time()
+        st.write(f"Finished Rust in seconds: {end_time - start_time}")
 
 
 if 'displays' in locals():
@@ -263,7 +271,6 @@ if 'displays' in locals():
     g_graphs_fig['layout']['height'] = 800
     g_graphs_fig.update_annotations(font_size=24)
 
-    intermediate_step = 10
     cav_f = []
     cav_base = []
     cav_inter = []
@@ -290,10 +297,17 @@ if 'displays' in locals():
             iv,
             ierr
         ])
-        xy_grid = np.array(display.cav_grid)
+        xv = np.array(display.xv)
+        fv = np.array(display.fv)
+        gv = np.array(display.gv)
         dgv = np.array(display.dgv)
+        cvs = display.cvs
+        st.write(f"[{display.a}, {display.b}]")
+        for i in range(len(cvs)):
+            index, cv = cvs[i]
+            cvs[i] = (index, np.array(cv))
         lg_i += 1
-        group_title = f"[{xy_grid[-1, 0, 0]:.2e}, {xy_grid[-1, -1, 0]:.2e}]"
+        group_title = f"[{xv[0]:.2e}, {xv[-1]:.2e}]"
         spec_f = dictionary_inherit(
             dict(
                 legendgroup=f"f{lg_i}",
@@ -324,60 +338,75 @@ if 'displays' in locals():
         )
 
         make_legend = True
-        for i in range(intermediate_step, len(xy_grid[0])-1, intermediate_step):
-            cav_inter.append(go.Scatter(
-                x=xy_grid[:, i, 0], y=xy_grid[:, i, 1], showlegend=make_legend, **spec_inter
-            ))
+        # Intermediate c(y) graphs
+        for i in range(1, len(cvs) - 1):
+            _, cv = cvs[i]
+            cav_inter.append(
+                go.Scatter(
+                    x=cv[:, 1],
+                    y=cv[:, 0],
+                    showlegend=make_legend,
+                    **spec_inter
+                )
+            )
             make_legend = False
 
+        # R x {0}
         cav_base.append(go.Scatter(
-            x=xy_grid[0, :, 0], y=np.zeros_like(xy_grid[0, :, 1]), showlegend=True, **spec_base
+            x=gv, y=np.zeros_like(gv), showlegend=True, **spec_base
         ))
 
+        # Boundary curve at `a`
+        _, cv = cvs[0]
         cav_sides.append(go.Scatter(
-            x=xy_grid[:, 0, 0], y=xy_grid[:, 0, 1], showlegend=True, **spec_sides
+            x=cv[:, 1], y=cv[:, 0], showlegend=True, **spec_sides
         ))
 
+        # Boundary curve at `b`
+        _, cv = cvs[-1]
         cav_sides.append(go.Scatter(
-            x=xy_grid[:, -1, 0], y=xy_grid[:, -1, 1], showlegend=False, **spec_sides
+            x=cv[:, 1], y=cv[:, 0], showlegend=False, **spec_sides
         ))
 
+        # S x f(S)
         cav_f.append(go.Scatter(
-            x=xy_grid[-1, :, 0], y=xy_grid[-1, :, 1], showlegend=True, **spec_f
+            x=xv, y=fv, showlegend=True, **spec_f
         ))
 
         # Equivalent Riemann-Stieltjes integral over S.
 
-        # f(x*)*g'(x*) graph
+        # f(S)*g'(S)
         rs_f.append(go.Scatter(
-            x=xy_grid[-1, :, 0],
-            y=xy_grid[-1, :, 1] * dgv,
+            x=xv,
+            y=fv * dgv,
             showlegend=False,
             **spec_f
         ))
 
-        for i in range(intermediate_step, len(xy_grid[0])-1, intermediate_step):
+        # Intermediate graphs
+        for i in range(1, len(cvs) - 1):
+            xindex, _ = cvs[i]
             rs_inter.append(
                 go.Scatter(
-                    x=xy_grid[-1, [i, i], 0],
-                    y=[0, xy_grid[-1, i, 1] * dgv[i]],
+                    x=xv[[xindex, xindex]],
+                    y=[0, fv[xindex] * dgv[xindex]],
                     showlegend=False,
                     **spec_inter
                 )
             )
 
-        # Left boundary
+        # Boundary at `a`
         rs_sides.append(go.Scatter(
-            x=xy_grid[-1, [0, 0], 0],
-            y=[0, xy_grid[-1, 0, 1] * dgv[0]],
+            x=xv[[0, 0]],
+            y=[0, fv[0] * dgv[0]],
             showlegend=False,
             **spec_sides
         ))
 
-        # Right boundary
+        # Boundary at `b`
         rs_sides.append(go.Scatter(
-            x=xy_grid[-1, [-1, -1], 0],
-            y=[0, xy_grid[-1, -1, 1] * dgv[-1]],
+            x=xv[[-1, -1]],
+            y=[0, fv[-1] * dgv[-1]],
             showlegend=False,
             **spec_sides
         ))
@@ -385,8 +414,8 @@ if 'displays' in locals():
         # Base
         rs_base.append(
             go.Scatter(
-                x=xy_grid[-1, :, 0],
-                y=np.zeros_like(dgv),
+                x=xv,
+                y=np.zeros_like(xv),
                 showlegend=False,
                 **spec_base
             )
@@ -394,21 +423,23 @@ if 'displays' in locals():
 
         # Equivalent Riemann integral over R.
 
-        # f(h(x)) graph
+        # f(h(R))
         r_f.append(
             go.Scatter(
-                x=xy_grid[0, :, 0],
-                y=xy_grid[-1, :, 1],
+                x=gv,
+                y=fv,
                 showlegend=False,
                 **spec_f
             )
         )
 
-        for i in range(intermediate_step, len(xy_grid[0])-1, intermediate_step):
+       # Intermediate graphs
+        for i in range(1, len(cvs) - 1):
+            xindex, _ = cvs[i]
             r_inter.append(
                 go.Scatter(
-                    x=xy_grid[0, [i, i], 0],
-                    y=[0, xy_grid[-1, i, 1]],
+                    x=gv[[xindex, xindex]],
+                    y=[0, fv[xindex]],
                     showlegend=False,
                     **spec_inter
                 )
@@ -416,8 +447,8 @@ if 'displays' in locals():
 
         r_sides.append(
             go.Scatter(
-                x=xy_grid[0, [0, 0], 0],
-                y=[0, xy_grid[-1, 0, 1]],
+                x=gv[[0, 0]],
+                y=[0, fv[0]],
                 showlegend=False,
                 **spec_sides,
             )
@@ -425,8 +456,8 @@ if 'displays' in locals():
 
         r_sides.append(
             go.Scatter(
-                x=xy_grid[0, [-1, -1], 0],
-                y=[0, xy_grid[-1, -1, 1]],
+                x=gv[[-1, -1]],
+                y=[0, fv[-1]],
                 showlegend=False,
                 **spec_sides
             )
@@ -434,8 +465,8 @@ if 'displays' in locals():
 
         r_base.append(
             go.Scatter(
-                x=xy_grid[0, :, 0],
-                y=np.zeros_like(xy_grid[0, :, 0]),
+                x=gv,
+                y=np.zeros_like(gv),
                 showlegend=False,
                 **spec_base
             )
@@ -444,8 +475,8 @@ if 'displays' in locals():
         # g graph
         g_graphs_fig.add_trace(
             go.Scatter(
-                x=xy_grid[-1, :, 0],
-                y=xy_grid[-1, :, 1],
+                x=xv,
+                y=gv,
                 **PTLY_F_MAJOR_GRID_DEF
             ),
             row=1,
@@ -455,7 +486,7 @@ if 'displays' in locals():
         # dg graph
         g_graphs_fig.add_trace(
             go.Scatter(
-                x=xy_grid[-1, :, 0],
+                x=xv,
                 y=dgv,
                 **PTLY_F_MAJOR_GRID_DEF
             ),

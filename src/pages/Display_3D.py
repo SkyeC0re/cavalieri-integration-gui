@@ -203,7 +203,7 @@ with input_tab:
 
     with polygons_label_col:
         st.write('###')
-        st.write('Polygons:')
+        st.latex('S=')
 
     initial_polygon_set = r'''[
     [-1,-1],
@@ -251,11 +251,10 @@ if gen_button:
         subplot_titles=['S Region', 'R Region'],
     )
     fig_2d_regions.update_annotations(font_size=24)
-
     displays = display_cav3d(f_expr, c1_expr, c2_expr,
-                             poly_set_expr, True, rad_res3d,
-                             xy_res3d, z_res3d,
-                             integ_iters, tol)
+                                poly_set_expr, True, rad_res3d,
+                                xy_res3d, z_res3d,
+                                integ_iters, tol)
     make_triangle_legend = True
     curtain_id_map = dict()
     triag_integ_df = []
