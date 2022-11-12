@@ -156,13 +156,13 @@ input_tab, config_tab = st.tabs(['Parameters', 'Config'])
 with config_tab:
     st.write('# Config')
     rad_res3d = st.number_input("Triangle Radial Resolution", help="Sets the radial resolution for the top bottom meshes of each produced triangle.", key='cfg3d_rad_res',
-                                min_value=50, max_value=200, value=100)
+                                min_value=50, max_value=200, value=50)
 
     xy_res3d = st.number_input("Triangle XY Resolution", help="Sets the xy resolution for the sides of each produced triangle.", key='cfg3d_xy_res',
-                               min_value=50, max_value=200, value=100)
+                               min_value=50, max_value=200, value=50)
 
     z_res3d = st.number_input("Triangle Z Resolution", help="Sets the z resolution for the sides of each produced triangle.", key='cfg3d_z_res',
-                              min_value=50, max_value=200, value=100)
+                              min_value=50, max_value=200, value=50)
 
     integ_iters = st.number_input("Maximum Integration Iterations",
                                   help="Sets the maximum adaptive Gauss-Kronrod iterations before failure.", key='cfg3d_integ_iters', min_value=10, max_value=1000, value=100)
