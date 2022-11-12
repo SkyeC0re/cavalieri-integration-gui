@@ -220,7 +220,7 @@ with input_tab:
 
     with polygons_input_col:
         polygons_input = st.text_area(
-            '*', label_visibility="hidden", value=initial_polygon_set, key="poly_input_3d")
+            '*', label_visibility="hidden", value=initial_polygon_set, key="poly_input_3d", height=300)
 
 
     f_expr = str(f_ti)
@@ -251,170 +251,174 @@ if gen_button:
         subplot_titles=['S Region', 'R Region'],
     )
     fig_2d_regions.update_annotations(font_size=24)
-    displays = display_cav3d(f_expr, c1_expr, c2_expr,
-                                poly_set_expr, True, rad_res3d,
-                                xy_res3d, z_res3d,
-                                integ_iters, tol)
-    make_triangle_legend = True
-    curtain_id_map = dict()
-    triag_integ_df = []
-    accu_sum = 0
-    accu_err = 0
-    for display in displays:
-        iv, ierr = display.integ_value
-        accu_sum += iv
-        accu_err += ierr
-        triag = np.array(display.triag)
+    try:
+        displays = display_cav3d(f_expr, c1_expr, c2_expr,
+                                    poly_set_expr, True, rad_res3d,
+                                    xy_res3d, z_res3d,
+                                    integ_iters, tol)
+    except Exception as ex:
+            st.write(f"An error has occurred: {ex}")
+    if displays:
+        make_triangle_legend = True
+        curtain_id_map = dict()
+        triag_integ_df = []
+        accu_sum = 0
+        accu_err = 0
+        for display in displays:
+            iv, ierr = display.integ_value
+            accu_sum += iv
+            accu_err += ierr
+            triag = np.array(display.triag)
 
-        triag_integ_df.append([
-            f"({triag[0, 0]:.2e}, {triag[0, 1]:.2e})--({triag[1, 0]:.2e}, {triag[1, 1]:.2e})--({triag[2, 0]:.2e}, {triag[2, 1]:.2e})",
-            iv,
-            ierr
-        ])
-        top_mesh = np.array(display.top_mesh)
-        bot_mesh = np.array(display.bot_mesh)
-        i, j, k = triangulate_grid_surf(bot_mesh.shape[0], bot_mesh.shape[1])
-        # Top mesh
-        fig_3d_integral.add_trace(
-            go.Mesh3d(x=top_mesh[..., 0].flatten(), y=top_mesh[..., 1].flatten(
-            ), z=top_mesh[..., 2].flatten(), i=i, j=j, k=k, **PTLY_F_MESH_DEF),
-            row=1,
-            col=1
-        )
-
-        # Top mesh tracing
-        fig_3d_integral.add_trace(
-            go.Scatter3d(x=top_mesh[-1, :, 0], y=top_mesh[-1, :, 1],
-                         z=top_mesh[-1, :, 2], **PTLY_F_MINOR_LINE_DEF),
-            row=1,
-            col=1
-        )
-
-        xv = bot_mesh[..., 0].flatten()
-        # Bottom mesh
-        fig_3d_integral.add_trace(
-            go.Mesh3d(x=xv, y=bot_mesh[..., 1].flatten(
-            ), z=np.zeros_like(xv), i=i, j=j, k=k, **PTLY_BASE_MESH_DEF),
-            row=1,
-            col=1
-        )
-
-        # Bottom mesh tracing
-        fig_3d_integral.add_trace(
-            go.Scatter3d(x=bot_mesh[-1, :, 0], y=bot_mesh[-1, :, 1], z=np.zeros_like(
-                bot_mesh[-1, :, 0]), **PTLY_BASE_MINOR_LINE_DEF),
-            row=1,
-            col=1
-        )
-
-        curtains = np.array(display.curtains)
-        for curtain in curtains:
-            a = curtain[-1, 0, :]
-            b = curtain[-1, -1, :]
-
-            if a[0] < b[0]:
-                curtain_id = str([a, b])
-            elif a[0] > b[0]:
-                curtain_id = str([b, a])
-            elif a[1] < b[1]:
-                curtain_id = str([a, b])
-            else:
-                curtain_id = str([b, a])
-            if curtain_id in curtain_id_map:
-                curtain_id_map[curtain_id][0] += 1
-            else:
-                curtain_id_map[curtain_id] = [0, curtain]
-
-    triag_integ_df.append(
-        ["Total", accu_sum, accu_err])
-    triag_integ_df = pd.DataFrame(triag_integ_df,
-                                  columns=['Triangle', 'Integration Value', 'Estimated Error'], index=None)
-    for repititions, curtain in curtain_id_map.values():
-        i, j, k = triangulate_grid_surf(curtain.shape[0], curtain.shape[1])
-        if repititions == 0:
-            # Curtain mesh
+            triag_integ_df.append([
+                f"({triag[0, 0]:.2e}, {triag[0, 1]:.2e})--({triag[1, 0]:.2e}, {triag[1, 1]:.2e})--({triag[2, 0]:.2e}, {triag[2, 1]:.2e})",
+                iv,
+                ierr
+            ])
+            top_mesh = np.array(display.top_mesh)
+            bot_mesh = np.array(display.bot_mesh)
+            i, j, k = triangulate_grid_surf(bot_mesh.shape[0], bot_mesh.shape[1])
+            # Top mesh
             fig_3d_integral.add_trace(
-                go.Mesh3d(x=curtain[..., 0].flatten(), y=curtain[..., 1].flatten(
-                ), z=curtain[..., 2].flatten(), i=i, j=j, k=k, **PTLY_SIDES_MESH_DEF)
-            )
-
-            # Curtain top side major line
-            fig_3d_integral.add_trace(
-                go.Scatter3d(x=curtain[:, 0, 0], y=curtain[:, 0, 1],
-                             z=curtain[:, 0, 2], **PTLY_SIDES_MAJOR_LINE_DEF)
-            )
-
-            # Curtain right side major line
-            fig_3d_integral.add_trace(
-                go.Scatter3d(x=curtain[-1, :, 0], y=curtain[-1, :, 1],
-                             z=curtain[-1, :, 2], **PTLY_F_MAJOR_LINE_DEF)
-            )
-
-            # Curtain left side major line
-            fig_3d_integral.add_trace(
-                go.Scatter3d(x=curtain[0, :, 0], y=curtain[0, :, 1],
-                             z=curtain[0, :, 2], **PTLY_F_MAJOR_LINE_DEF)
-            )
-
-            # S Edge Line
-            fig_2d_regions.add_trace(
-                go.Scatter(x=curtain[-1, :, 0],
-                           y=curtain[-1, :, 1], **PTLY_2D_S_LINE_DEF),
+                go.Mesh3d(x=top_mesh[..., 0].flatten(), y=top_mesh[..., 1].flatten(
+                ), z=top_mesh[..., 2].flatten(), i=i, j=j, k=k, **PTLY_F_MESH_DEF),
                 row=1,
                 col=1
             )
 
-            # R Edge Line
-            fig_2d_regions.add_trace(
-                go.Scatter(x=curtain[0, :, 0], y=curtain[0, :, 1],
-                           **PTLY_2D_R_LINE_DEF),
-                row=1,
-                col=2
-            )
-        else:
-            # S Triangulation Line
-            fig_2d_regions.add_trace(
-                go.Scatter(x=curtain[-1, :, 0], y=curtain[-1, :, 1],
-                           name='Triangulation', **PTLY_2D_TRIANGLE_LINE_DEF),
+            # Top mesh tracing
+            fig_3d_integral.add_trace(
+                go.Scatter3d(x=top_mesh[-1, :, 0], y=top_mesh[-1, :, 1],
+                            z=top_mesh[-1, :, 2], **PTLY_F_MINOR_LINE_DEF),
                 row=1,
                 col=1
             )
 
-            # R Triangulation Line
-            fig_2d_regions.add_trace(
-                go.Scatter(x=curtain[0, :, 0], y=curtain[0, :, 1], **dictionary_inherit(dict(
-                    name='Triangulation', showlegend=make_triangle_legend), PTLY_2D_TRIANGLE_LINE_DEF)),
+            xv = bot_mesh[..., 0].flatten()
+            # Bottom mesh
+            fig_3d_integral.add_trace(
+                go.Mesh3d(x=xv, y=bot_mesh[..., 1].flatten(
+                ), z=np.zeros_like(xv), i=i, j=j, k=k, **PTLY_BASE_MESH_DEF),
                 row=1,
-                col=2
+                col=1
             )
 
-            make_triangle_legend = False
+            # Bottom mesh tracing
+            fig_3d_integral.add_trace(
+                go.Scatter3d(x=bot_mesh[-1, :, 0], y=bot_mesh[-1, :, 1], z=np.zeros_like(
+                    bot_mesh[-1, :, 0]), **PTLY_BASE_MINOR_LINE_DEF),
+                row=1,
+                col=1
+            )
+
+            curtains = np.array(display.curtains)
+            for curtain in curtains:
+                a = curtain[-1, 0, :]
+                b = curtain[-1, -1, :]
+
+                if a[0] < b[0]:
+                    curtain_id = str([a, b])
+                elif a[0] > b[0]:
+                    curtain_id = str([b, a])
+                elif a[1] < b[1]:
+                    curtain_id = str([a, b])
+                else:
+                    curtain_id = str([b, a])
+                if curtain_id in curtain_id_map:
+                    curtain_id_map[curtain_id][0] += 1
+                else:
+                    curtain_id_map[curtain_id] = [0, curtain]
+
+        triag_integ_df.append(
+            ["Total", accu_sum, accu_err])
+        triag_integ_df = pd.DataFrame(triag_integ_df,
+                                    columns=['Triangle', 'Integration Value', 'Estimated Error'], index=None)
+        for repititions, curtain in curtain_id_map.values():
+            i, j, k = triangulate_grid_surf(curtain.shape[0], curtain.shape[1])
+            if repititions == 0:
+                # Curtain mesh
+                fig_3d_integral.add_trace(
+                    go.Mesh3d(x=curtain[..., 0].flatten(), y=curtain[..., 1].flatten(
+                    ), z=curtain[..., 2].flatten(), i=i, j=j, k=k, **PTLY_SIDES_MESH_DEF)
+                )
+
+                # Curtain top side major line
+                fig_3d_integral.add_trace(
+                    go.Scatter3d(x=curtain[:, 0, 0], y=curtain[:, 0, 1],
+                                z=curtain[:, 0, 2], **PTLY_SIDES_MAJOR_LINE_DEF)
+                )
+
+                # Curtain right side major line
+                fig_3d_integral.add_trace(
+                    go.Scatter3d(x=curtain[-1, :, 0], y=curtain[-1, :, 1],
+                                z=curtain[-1, :, 2], **PTLY_F_MAJOR_LINE_DEF)
+                )
+
+                # Curtain left side major line
+                fig_3d_integral.add_trace(
+                    go.Scatter3d(x=curtain[0, :, 0], y=curtain[0, :, 1],
+                                z=curtain[0, :, 2], **PTLY_F_MAJOR_LINE_DEF)
+                )
+
+                # S Edge Line
+                fig_2d_regions.add_trace(
+                    go.Scatter(x=curtain[-1, :, 0],
+                            y=curtain[-1, :, 1], **PTLY_2D_S_LINE_DEF),
+                    row=1,
+                    col=1
+                )
+
+                # R Edge Line
+                fig_2d_regions.add_trace(
+                    go.Scatter(x=curtain[0, :, 0], y=curtain[0, :, 1],
+                            **PTLY_2D_R_LINE_DEF),
+                    row=1,
+                    col=2
+                )
+            else:
+                # S Triangulation Line
+                fig_2d_regions.add_trace(
+                    go.Scatter(x=curtain[-1, :, 0], y=curtain[-1, :, 1],
+                            name='Triangulation', **PTLY_2D_TRIANGLE_LINE_DEF),
+                    row=1,
+                    col=1
+                )
+
+                # R Triangulation Line
+                fig_2d_regions.add_trace(
+                    go.Scatter(x=curtain[0, :, 0], y=curtain[0, :, 1], **dictionary_inherit(dict(
+                        name='Triangulation', showlegend=make_triangle_legend), PTLY_2D_TRIANGLE_LINE_DEF)),
+                    row=1,
+                    col=2
+                )
+
+                make_triangle_legend = False
 
 
-    cav_int_tab, regions_tab, integ_tab = st.tabs(
-        ['3D Integral', 'R and S', 'Triangle Integration Values'])
+        cav_int_tab, regions_tab, integ_tab = st.tabs(
+            ['3D Integral', 'R and S', 'Triangle Integration Values'])
 
-    with cav_int_tab:
-        if not "fig_3d_integral" in locals():
-            fig_3d_integral = st.session_state.get("fig_3d_integral")
+        with cav_int_tab:
+            if not "fig_3d_integral" in locals():
+                fig_3d_integral = st.session_state.get("fig_3d_integral")
 
-        if fig_3d_integral:
-            st.plotly_chart(fig_3d_integral, True)
-            st.session_state["fig_3d_integral"] = fig_3d_integral
+            if fig_3d_integral:
+                st.plotly_chart(fig_3d_integral, True)
+                st.session_state["fig_3d_integral"] = fig_3d_integral
 
-    with regions_tab:
-        if not "fig_2d_regions" in locals():
-            fig_2d_regions = st.session_state.get("fig_2d_regions")
+        with regions_tab:
+            if not "fig_2d_regions" in locals():
+                fig_2d_regions = st.session_state.get("fig_2d_regions")
 
-        if fig_2d_regions:
-            st.plotly_chart(fig_2d_regions, True)
-            st.session_state["fig_2d_regions"] = fig_2d_regions
+            if fig_2d_regions:
+                st.plotly_chart(fig_2d_regions, True)
+                st.session_state["fig_2d_regions"] = fig_2d_regions
 
-    with integ_tab:
-        if not "triag_integ_df" in locals():
-            triag_integ_df = st.session_state.get("triag_integ_df")
+        with integ_tab:
+            if not "triag_integ_df" in locals():
+                triag_integ_df = st.session_state.get("triag_integ_df")
 
-        if not triag_integ_df is None:
-            st.dataframe(triag_integ_df.style.format('{:.3e}', subset=[
-                     "Integration Value", "Estimated Error"]))
-            st.session_state["triag_integ_df"] = triag_integ_df
+            if not triag_integ_df is None:
+                st.dataframe(triag_integ_df.style.format('{:.4e}', subset=[
+                        "Integration Value", "Estimated Error"]))
+                st.session_state["triag_integ_df"] = triag_integ_df

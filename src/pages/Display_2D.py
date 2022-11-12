@@ -142,7 +142,7 @@ with config_tab:
                               min_value=50, max_value=500, value=100)
 
     interm_cs = st.number_input("Intermediate Curves", help="How many intermediate c_x(y) curves to plot.", key='cfg2d_interm_cs',
-                                min_value=0, max_value=20, value=0)
+                                min_value=0, max_value=20, value=4)
 
     rf_iters = st.number_input("Maximum Root Finding Iterations",
                                help="Sets the maximum root finding iterations before failure.", key='cfg2d_rf_iters', min_value=10, max_value=1000, value=100)
@@ -151,7 +151,7 @@ with config_tab:
                                   help="Sets the maximum adaptive Gauss-Kronrod iterations before failure.", key='cfg2d_integ_iters', min_value=10, max_value=1000, value=100)
 
     tol = 10 ** st.number_input("Integration Tolerance Base 10 Exponent", help="Sets the absolute integration tolerance exponent.", key='cfg2d_tol',
-                                min_value=-12, max_value=0, value=-9)
+                                min_value=-12, max_value=-5, value=-9)
 
 
 with input_cav_tab:
@@ -191,16 +191,18 @@ with input_cav_tab:
         f_expr = str(f_input_cav)
         c_expr = str(c_input_cav)
         intervals_expr = str(x_intervals_input_cav)
-
-        displays = display_cav2d(f_expr, c_expr, intervals_expr,
-                                 True,
-                                 x_res2d,
-                                 y_res2d,
-                                 interm_cs,
-                                 rf_iters,
-                                 integ_iters,
-                                 tol,
-                                 )
+        try:
+            displays = display_cav2d(f_expr, c_expr, intervals_expr,
+                                     True,
+                                     x_res2d,
+                                     y_res2d,
+                                     interm_cs,
+                                     rf_iters,
+                                     integ_iters,
+                                     tol,
+                                     )
+        except Exception as ex:
+            st.write(f"An error has occurred: {ex}")
 
 
 with input_rs_tab:
@@ -240,15 +242,18 @@ with input_rs_tab:
         f_expr = str(f_input_rs)
         g_expr = str(g_input_rs)
         intervals_expr = str(x_intervals_input_rs)
-        displays = display_cav2d_rs(f_expr, g_expr, intervals_expr,
-                                    True,
-                                    x_res2d,
-                                    y_res2d,
-                                    interm_cs,
-                                    rf_iters,
-                                    integ_iters,
-                                    tol,
-                                    )
+        try:
+            displays = display_cav2d_rs(f_expr, g_expr, intervals_expr,
+                                        True,
+                                        x_res2d,
+                                        y_res2d,
+                                        interm_cs,
+                                        rf_iters,
+                                        integ_iters,
+                                        tol,
+                                        )
+        except Exception as ex:
+            st.write(f"An error has occurred: {ex}")
 
 
 if 'displays' in locals():
@@ -441,6 +446,7 @@ if 'displays' in locals():
                 )
             )
 
+        # Boundary at `g(a)`
         r_sides.append(
             go.Scatter(
                 x=gv[[0, 0]],
@@ -450,6 +456,7 @@ if 'displays' in locals():
             )
         )
 
+        # Boundary at `g(b)`
         r_sides.append(
             go.Scatter(
                 x=gv[[-1, -1]],
@@ -459,6 +466,7 @@ if 'displays' in locals():
             )
         )
 
+        # Base
         r_base.append(
             go.Scatter(
                 x=gv,
@@ -468,12 +476,17 @@ if 'displays' in locals():
             )
         )
 
+        # Miscellaneous graphs
+
         # g graph
         g_graphs_fig.add_trace(
             go.Scatter(
                 x=xv,
                 y=gv,
-                **PTLY_F_MAJOR_GRID_DEF
+                **PTLY_F_MAJOR_GRID_DEF,
+                showlegend=True,
+                legendgroup=f"f{lg_i}",
+                legendgrouptitle=dict(text=group_title),
             ),
             row=1,
             col=1
@@ -484,7 +497,9 @@ if 'displays' in locals():
             go.Scatter(
                 x=xv,
                 y=dgv,
-                **PTLY_F_MAJOR_GRID_DEF
+                **PTLY_F_MAJOR_GRID_DEF,
+                showlegend=False,
+                legendgroup=f"f{lg_i}",
             ),
             row=2,
             col=1
@@ -510,5 +525,5 @@ if 'displays' in locals():
             st.plotly_chart(g_graphs_fig, True)
 
     with integ_tab:
-        st.dataframe(interval_integ_df.style.format('{:.3e}', subset=[
+        st.dataframe(interval_integ_df.style.format('{:.4e}', subset=[
                      "Integration Value", "Estimated Error"]), use_container_width=True)
