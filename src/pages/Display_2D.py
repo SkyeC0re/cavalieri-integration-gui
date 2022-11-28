@@ -1,4 +1,3 @@
-import time
 import streamlit as st
 from cavint import display_cav2d, display_cav2d_rs
 import numpy as np

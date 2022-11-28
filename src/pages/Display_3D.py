@@ -1,10 +1,8 @@
-import plotly
 import numpy as np
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 import plotly
 from cavint import display_cav3d
-from cmath import cos, sin
 import streamlit as st
 import pandas as pd
 pd.set_option('display.float_format', '{:.3e}'.format)
@@ -173,7 +171,7 @@ with config_tab:
 with input_tab:
     st.write('# Parameters')
     f_label_col, f_input_col, c1_label_col, c1_input_col, c2_label_col, c2_input_col = st.columns([
-                                                                                                  1, 5, 1, 5, 1, 5])
+                                                                                                  1.3, 3, 1, 3, 1, 3])
 
     with f_label_col:
         st.write('###')
