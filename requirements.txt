@@ -1,5 +1,5 @@
-streamlit
+streamlit==1.14.0
 numpy
 plotly
 pandas
-cavint
+cavint==1.0.4
