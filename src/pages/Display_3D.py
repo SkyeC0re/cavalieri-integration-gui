@@ -256,7 +256,7 @@ if gen_button:
                                     integ_iters, tol)
     except Exception as ex:
             st.write(f"An error has occurred: {ex}")
-    if displays:
+    if "displays" in locals():
         make_triangle_legend = True
         curtain_id_map = dict()
         triag_integ_df = []
@@ -340,19 +340,25 @@ if gen_button:
                     ), z=curtain[..., 2].flatten(), i=i, j=j, k=k, **PTLY_SIDES_MESH_DEF)
                 )
 
-                # Curtain top side major line
+                # Curtain left side major line
                 fig_3d_integral.add_trace(
                     go.Scatter3d(x=curtain[:, 0, 0], y=curtain[:, 0, 1],
                                 z=curtain[:, 0, 2], **PTLY_SIDES_MAJOR_LINE_DEF)
                 )
 
-                # Curtain right side major line
+                 # Curtain left side major line
+                fig_3d_integral.add_trace(
+                    go.Scatter3d(x=curtain[:, -1, 0], y=curtain[:, -1, 1],
+                                z=curtain[:, -1, 2], **PTLY_SIDES_MAJOR_LINE_DEF)
+                )
+
+                # Curtain top major line
                 fig_3d_integral.add_trace(
                     go.Scatter3d(x=curtain[-1, :, 0], y=curtain[-1, :, 1],
                                 z=curtain[-1, :, 2], **PTLY_F_MAJOR_LINE_DEF)
                 )
 
-                # Curtain left side major line
+                # Curtain bottom major line
                 fig_3d_integral.add_trace(
                     go.Scatter3d(x=curtain[0, :, 0], y=curtain[0, :, 1],
                                 z=curtain[0, :, 2], **PTLY_F_MAJOR_LINE_DEF)
